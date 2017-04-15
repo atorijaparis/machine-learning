@@ -95,53 +95,6 @@ class NeuralNetwork(object):
 
         self.activation_function = sigmoid
 
-    def trainOK(self, features, targets):
-        ''' Train the network on batch of features and targets.
-
-            Arguments
-            ---------
-
-            features: 2D array, each row is one data record, each column is a feature
-            targets: 1D array of target values
-
-        '''
-        n_records = features.shape[0]
-        delta_weights_i_h = np.zeros(self.weights_input_to_hidden.shape)
-        delta_weights_h_o = np.zeros(self.weights_hidden_to_output.shape)
-
-        for X, y in zip(features, targets):
-            #### Implement the forward pass here ####
-            ### Forward pass ###
-            # TODO: Hidden layer - Replace these values with your calculations.
-            hidden_inputs  = np.dot(X, self.weights_input_to_hidden)  # signals into hidden layer
-            hidden_outputs = self.activation_function(hidden_inputs)  # signals from hidden layer
-
-            # TODO: Output layer - Replace these values with your calculations.
-            final_inputs  = np.dot(hidden_outputs, self.weights_hidden_to_output)  # signals into final output layer
-            final_outputs = final_inputs #self.activation_function(final_inputs)  # signals from final output layer
-            # final_outputs = final_inputs
-            #### Implement the backward pass here ####
-            ### Backward pass ###
-
-            # TODO: Output error - Replace this value with your calculations.
-            error = y - final_outputs  # Output layer error is the difference between desired target and actual output.
-
-            # TODO: Calculate the hidden layer's contribution to the error
-            hidden_error = np.dot(self.weights_hidden_to_output, error)
-
-            # TODO: Backpropagated error terms - Replace these values with your calculations.
-            output_error_term = error * 1
-            hidden_error_term = hidden_error * hidden_outputs * (1 - hidden_outputs)
-
-            # Weight step (input to hidden)
-            delta_weights_i_h += hidden_error_term * X[:, None]
-            # Weight step (hidden to output)
-            delta_weights_h_o += output_error_term * hidden_outputs[:, None]
-
-        # TODO: Update the weights - Replace these values with your calculations.
-        self.weights_hidden_to_output += self.lr * delta_weights_h_o  # update hidden-to-output weights with gradient descent step
-        self.weights_input_to_hidden  += self.lr * delta_weights_i_h  # update input-to-hidden weights with gradient descent step
-
 
     def train(self, features, targets):
         ''' Train the network on batch of features and targets.
@@ -195,11 +148,11 @@ class NeuralNetwork(object):
             # Update delta weights hidden->output
             delta_weights_h_o +=  output_error_term * hidden_outputs[:,None]
 
-        #
+        # input->hidden weights: Apply learning rate & delta weights / n_records
         self.weights_input_to_hidden  +=  self.lr * delta_weights_i_h / n_records
-        #
-        self.weights_hidden_to_output +=  self.lr * delta_weights_h_o / n_records
 
+        # hidden->output weights: Apply learning rate & delta weights / n_records
+        self.weights_hidden_to_output +=  self.lr * delta_weights_h_o / n_records
 
     def run(self, features):
         ''' Run a forward pass through the network with input features
@@ -208,29 +161,21 @@ class NeuralNetwork(object):
             ---------
             features: 1D array of feature values
         '''
+        # Compute input to hidden layer from:
+        #  linear combination weight & features
+        hidden_inputs = np.dot(features, self.weights_input_to_hidden)
 
-        print('features:\n',features) # 1x3
-        print('weights_input_to_hidden:\n', self.weights_input_to_hidden) # 3x2
-        #
-        # HIDDEN LAYER
-        #
-        hidden_inputs = np.dot(features, self.weights_input_to_hidden) # 1x3 3x2
-        print('hidden_inputs:\n', hidden_inputs) # 1x2
+        # Compute output of hidden layer from:
+        # sigmoid activation function
+        hidden_outputs = self.activation_function(hidden_inputs)
 
-        # Compute result of activation function
-        hidden_outputs = self.activation_function(hidden_inputs) # 1x2
-        print('hidden_outputs:\n', hidden_outputs) # 1x2
+        # Compute input to output(final) layer
+        # from: linear combination hidden layer weights & hidden layer output
+        final_inputs = np.dot(hidden_outputs, self.weights_hidden_to_output)
 
-        #
-        # OUTPUT LAYER
-        #
-        print('weights_hidden_to_output:\n', self.weights_hidden_to_output) # 2x1
-        final_inputs = np.dot(hidden_outputs, self.weights_hidden_to_output) # 1x2 2x1
-        print('final_inputs:\n', final_inputs) # 1x1
-
-        # Activation function for output layer is f(x) = x i.e no change - Just pass final_inputs to output
-        final_outputs = final_inputs # 1x1
-        print('final_outputs:\n', final_outputs) # 1x1
+        # Compute output of output(final) layer from:
+        # nothing since f(x) = x  just copy input
+        final_outputs = final_inputs
 
         return final_outputs
 
@@ -281,118 +226,6 @@ class TestMethods(unittest.TestCase):
                                               [0.39775194, 0.50074398],
                                               [-0.29887597, 0.19962801]])))
 
-
 suite = unittest.TestLoader().loadTestsFromModule(TestMethods())
 unittest.TextTestRunner().run(suite)
-
-'''
-    ##########
-    # Unit tests for network functionality
-    ##########
-    def test_run(self):
-        # Test correctness of run method
-        network = NeuralNetwork(3, 2, 1, 0.5)
-        network.weights_input_to_hidden = test_w_i_h.copy()
-        network.weights_hidden_to_output = test_w_h_o.copy()
-
-        self.assertTrue(np.allclose(network.run(inputs), 0.09998924))
-
-    def test_run(self):
-        # Test correctness of run method
-        network = NeuralNetwork(3, 2, 1, 0.5)
-        network.weights_input_to_hidden  = test_w_i_h.copy()
-        network.weights_hidden_to_output = test_w_h_o.copy()
-
-        self.assertTrue(np.allclose(network.run(inputs), 0.09998924))
-
-
-    def test_train(self):
-        # Test that weights are updated correctly on training
-        network = NeuralNetwork(3, 2, 1, 0.5)
-        network.weights_input_to_hidden = test_w_i_h.copy()
-        network.weights_hidden_to_output = test_w_h_o.copy()
-
-        network.train(inputs, targets)
-        self.assertTrue(np.allclose(network.weights_hidden_to_output,
-                                    np.array([[0.37275328],
-                                              [-0.03172939]])))
-        self.assertTrue(np.allclose(network.weights_input_to_hidden,
-                                    np.array([[0.10562014, -0.20185996],
-                                              [0.39775194, 0.50074398],
-                                              [-0.29887597, 0.19962801]])))
-
-
-def trainXYZ(self, features, targets):
-        n_records = features.shape[0]
-        delta_weights_i_h = np.zeros(self.weights_input_to_hidden.shape)
-        delta_weights_h_o = np.zeros(self.weights_hidden_to_output.shape)
-
-        for X, y in zip(features, targets):
-            # FORWARD PASS
-            print('features:\n', features)  # 1x3
-            print('weights_input_to_hidden:\n', self.weights_input_to_hidden)  # 3x2
-            #
-            # HIDDEN LAYER
-            #
-            hidden_inputs = np.dot(features, self.weights_input_to_hidden)  # 1x3 3x2
-            print('hidden_inputs:\n', hidden_inputs)  # 1x2
-
-            # Compute result of activation function
-            hidden_outputs = self.activation_function(hidden_inputs)  # 1x2
-            print('hidden_outputs:\n', hidden_outputs)  # 1x2
-
-            #
-            # OUTPUT LAYER
-            #
-            print('weights_hidden_to_output:\n', self.weights_hidden_to_output)  # 2x1
-            final_inputs = np.dot(hidden_outputs, self.weights_hidden_to_output)  # 1x2 2x1
-            print('final_inputs:\n', final_inputs)  # 1x1
-
-            # Activation function for output layer is f(x) = x i.e no change - Just pass final_inputs to output
-            final_outputs = final_inputs  # 1x1
-            print('final_outputs:\n', final_outputs)  # 1x1
-
-            #### Implement the backward pass here ####
-            ### Backward pass ###
-
-            # TODO: Output error - Replace this value with your calculations.
-            error = targets - final_outputs
-            print('error:\n', error) # 1x1
-            print('targets:\n', targets) # 1x1
-            output_error_term = error * final_outputs * ( 1 - final_outputs)
-            print('output_error_term:\n', output_error_term)  # 1x1
-
-            # TODO: Calculate the hidden layer's contribution to the error
-            hidden_error = np.dot(output_error_term,self.weights_hidden_to_output.T) # 1x1 2x1.T = 1x1 1x2 = 1x2
-            print('hidden_error:\n', hidden_error)  # 1x2
-            hidden_grad = hidden_outputs * (1 - hidden_outputs)
-            hidden_error_term = hidden_error * hidden_grad
-            print('hidden_error_term:\n', hidden_error_term) # 1x2   ### Why 2x2 ###
-
-            # TODO: Backpropagated error terms - Replace these values with your calculations.
-            # Weight step (input to hidden)
-            print('self.lr:\n', self.lr)
-            print('delta_weights_i_h:\n', delta_weights_i_h)
-            delta_weights_i_h +=  self.lr * np.dot(hidden_error_term,features.T) # 1 1x2.T 1x3
-
-            # Weight step (hidden to output)
-            print('delta_weights_h_o:',delta_weights_h_o.shape,
-                  'output_error_term:',output_error_term.shape,
-                  "hidden_outputs:",hidden_outputs.shape)
-            delta_weights_h_o +=  self.lr * hidden_outputs * output_error_term
-
-        # TODO: Update the weights - Replace these values with your calculations.
-        self.weights_input_to_hidden  +=  delta_weights_i_h
-        self.weights_hidden_to_output +=  delta_weights_h_o
-
-
-'''
-
-
-
-
-
-
-
-
 
