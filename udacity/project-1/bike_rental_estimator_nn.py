@@ -90,10 +90,7 @@ class NeuralNetwork(object):
                                                          (self.hidden_nodes, self.output_nodes))
         self.lr = learning_rate
 
-        def sigmoid(x):
-            return 1 / (1 + np.exp(-x))  # Replace 0 with your sigmoid calculation here
-
-        self.activation_function = sigmoid
+        self.activation_function = lambda x: 1 / (1 + np.exp(-x))
 
 
     def train(self, features, targets):
@@ -232,9 +229,9 @@ unittest.TextTestRunner().run(suite)
 import sys
 
 ### Set the hyperparameters here ###
-iterations    = 20000 #100000
-learning_rate = 0.03
-hidden_nodes  = 25
+iterations    = 3500
+learning_rate = 0.75
+hidden_nodes  = 8
 output_nodes  = 1
 
 N_i = train_features.shape[1]
